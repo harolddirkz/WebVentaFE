@@ -37,7 +37,7 @@
 
 .rdt_TableCell {
   padding: 1rem; 
-  border-right: 1px solid #dee2e6; /
+  border-right: 1px solid #dee2e6; 
 }
 
 .rdt_TableCell:last-child {
