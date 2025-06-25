@@ -1,0 +1,89 @@
+.reporte-ventas {
+    padding: 2rem;
+    font-family: Arial, sans-serif;
+  }
+  
+  .totales-generales {
+    background-color: #f8f9fa;
+    padding: 1rem;
+    border-radius: 5px;
+    margin-bottom: 1.5rem;
+  }
+  
+  .totales-generales p {
+    margin: 0.4rem 0;
+  }
+  
+  .tabla-ventas {
+    width: 100%;
+    border-collapse: collapse;
+    margin-top: 1rem;
+  }
+  
+  .tabla-ventas thead {
+    background-color: #e9ecef;
+  }
+  
+  .tabla-ventas th,
+  .tabla-ventas td {
+    padding: 0.75rem;
+    text-align: left;
+    border-bottom: 1px solid #dee2e6;
+  }
+  
+  .tabla-ventas tr:hover {
+    background-color: #f1f1f1;
+  }
+
+
+  .reportes-screen {
+    padding: 2rem;
+    font-family: Arial, sans-serif;
+  }
+  
+  .botones-reportes {
+    display: flex;
+    flex-direction: column;
+    gap: 1rem;
+    margin-bottom: 2rem;
+  }
+  
+  .botones-reportes button {
+    padding: 0.5rem 1rem;
+    font-size: 1rem;
+    cursor: pointer;
+  }
+  
+  .rango-fechas {
+    display: flex;
+    align-items: center;
+    gap: 1rem;
+    flex-wrap: wrap;
+  }
+  
+  .rango-fechas label {
+    display: flex;
+    flex-direction: column;
+    font-weight: bold;
+  }
+  
+  .tabla-reportes table {
+    width: 100%;
+    border-collapse: collapse;
+    margin-top: 1rem;
+  }
+  
+  .tabla-reportes th,
+  .tabla-reportes td {
+    border: 1px solid #ccc;
+    padding: 0.75rem;
+    text-align: left;
+  }
+  
+  .tabla-reportes th {
+    background-color: #f4f4f4;
+  }
+  
+  .error {
+    color: red;
+  }

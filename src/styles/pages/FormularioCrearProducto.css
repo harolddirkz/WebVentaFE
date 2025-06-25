@@ -1,0 +1,79 @@
+.form-wrapper {
+  min-height: 100vh;
+  padding: 2rem 0;
+  background: linear-gradient(135deg, #f5f7ff 0%, #e9ecff 100%);
+}
+
+.form-card {
+  max-width: 600px;
+  margin: 0 auto;
+  border: none;
+  border-radius: 15px;
+  box-shadow: 0 10px 30px rgba(0, 0, 0, 0.1);
+  background: white;
+}
+
+.form-title {
+  color: #2c3e50;
+  font-weight: 700;
+  margin-bottom: 2rem;
+  text-align: left;
+}
+
+.custom-input,
+.custom-select,
+.custom-textarea {
+  border: 1px solid #e2e8f0;
+  border-radius: 8px;
+  padding: 0.75rem;
+  transition: all 0.3s ease;
+  background-color: #f8fafc;
+  width: 100%;
+}
+
+.custom-input:focus,
+.custom-select:focus,
+.custom-textarea:focus {
+  border-color: #3498db;
+  box-shadow: 0 0 0 3px rgba(52, 152, 219, 0.2);
+  outline: none;
+}
+
+.custom-textarea {
+  min-height: 120px;
+  resize: vertical;
+}
+
+.form-label {
+  font-weight: 600;
+  color: #2c3e50;
+  margin-bottom: 0.5rem;
+  display: block;
+  text-align: left;
+}
+
+.custom-button {
+  background: linear-gradient(45deg, #3498db, #2980b9);
+  border: none;
+  border-radius: 8px;
+  padding: 0.75rem 2rem;
+  font-weight: 600;
+  transition: all 0.3s ease;
+  width: auto;
+  display: block;
+}
+
+.custom-button:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 5px 15px rgba(52, 152, 219, 0.3);
+  background: linear-gradient(45deg, #2980b9, #2c3e50);
+}
+
+.card-body {
+  padding: 2rem;
+}
+
+.form-group {
+  width: 100%;
+}
+
