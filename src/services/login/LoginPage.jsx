@@ -1,10 +1,12 @@
+// src/pages/LoginPage.js
+
 import React, { useState } from 'react';
 import { Form, Button, Container, Card, Alert, Spinner } from 'react-bootstrap';
-import { useNavigate } from 'react-router-dom'; 
-import { loginUser } from '../api'; 
-import '../../styles/pages/FormularioCrearProducto.css'; 
+import { useNavigate } from 'react-router-dom';
+import { loginUser } from '../../services/api';
+import '../../styles/pages/FormularioCrearProducto.css';
 
-const LoginPage = ({ onLoginSuccess }) => { 
+const LoginPage = ({ onLoginSuccess }) => {
   const [usuario, setUsuario] = useState('');
   const [contrasena, setContrasena] = useState('');
   const [error, setError] = useState(null);
@@ -17,20 +19,27 @@ const LoginPage = ({ onLoginSuccess }) => {
     setLoading(true);
 
     try {
-
       const response = await loginUser({ usuario, contrasena });
       console.log('Login exitoso:', response);
-      const userRole = response.split('Rol: ')[1]; 
-      localStorage.setItem('userRole', userRole); 
-      localStorage.setItem('isAuthenticated', 'true'); 
 
-      if (onLoginSuccess) {
-        onLoginSuccess(true, userRole); 
+      if (response && response.jwt && response.roles && response.roles.length > 0) {
+        localStorage.setItem('jwt_token', response.jwt); 
+        localStorage.setItem('isAuthenticated', 'true'); 
+        localStorage.setItem('userRole', response.roles[0]); 
+
+        if (onLoginSuccess) {
+          onLoginSuccess(response.jwt, response.roles[0]); 
+        }
+
+        navigate('/'); 
+      } else {
+        setError("Respuesta de login inválida: token o rol no encontrados.");
+        console.error("Login response invalid:", response);
       }
-      navigate('/'); 
+
     } catch (err) {
       console.error('Error durante el login:', err);
-      setError(err.response?.data || 'Credenciales incorrectas. Inténtalo de nuevo.');
+      setError(err.response?.data?.message || 'Credenciales incorrectas o error de servidor. Inténtalo de nuevo.');
     } finally {
       setLoading(false);
     }

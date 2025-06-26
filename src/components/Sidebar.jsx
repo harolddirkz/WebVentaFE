@@ -246,7 +246,7 @@ const Sidebar = () => {
               <Nav.Link href="/usuario/create" className="sub-item">
                 <FontAwesomeIcon icon={faPlus} /> Crear Usuario
               </Nav.Link>
-              <Nav.Link href="/ubicacion/list" className="sub-item">
+              <Nav.Link href="/usuario/list" className="sub-item">
                 <FontAwesomeIcon icon={faListOl} /> Listar Usuario
               </Nav.Link>
             </div>
