@@ -19,6 +19,8 @@ const CompraForm = () => {
   });
   const [totalImporteCompra, setTotalImporteCompra] = useState(0);
 
+  const [validationErrors, setValidationErrors] = useState({});
+
   useEffect(() => {
     const fetchData = async () => {
       setLoading(true);
@@ -31,9 +33,10 @@ const CompraForm = () => {
         setUsuarios(usuariosData || []);
       } catch (error) {
         console.error("Error al cargar datos:", error);
-        setErrorCompra("Error al cargar los datos iniciales.");
+        setErrorCompra("Error al cargar los datos iniciales. Por favor, intente recargar la página.");
+      } finally {
+        setLoading(false);
       }
-      setLoading(false);
     };
 
     fetchData();
@@ -47,15 +50,22 @@ const CompraForm = () => {
 
   const handleSelectProduct = (producto) => {
     if (!selectedProducts.some((p) => p.idProducto === producto.idProducto)) {
-      setSelectedProducts([
-        ...selectedProducts,
+      setSelectedProducts((prevSelected) => [
+        ...prevSelected,
         {
           ...producto,
           cantidad: 1,
-          precioUnitario: producto.precioUnitario || 0,
-          importe: (producto.precioUnitario || 0).toFixed(2),
+          // Si el producto es "Servicio Mecanico", inicializar precioUnitario en 0
+          precioUnitario: producto.nombreProducto === "Servicio Mecanico" ? 0 : (producto.ultimoPrecioUnitario || 0),
+          precioVenta: producto.ultimoPrecioVenta || 0,
+          importe: (1 * (producto.nombreProducto === "Servicio Mecanico" ? 0 : (producto.ultimoPrecioUnitario || 0))).toFixed(2),
         },
       ]);
+      setValidationErrors(prev => {
+        const newErrors = { ...prev };
+        delete newErrors.selectedProducts;
+        return newErrors;
+      });
     }
   };
 
@@ -71,11 +81,11 @@ const CompraForm = () => {
         product.idProducto === productId
           ? {
               ...product,
-              cantidad: isNaN(parsedQuantity) || parsedQuantity < 1 ? 1 : parsedQuantity,
+              cantidad: isNaN(parsedQuantity) || parsedQuantity < 1 ? "" : parsedQuantity,
               importe: calculateImporte(
-                isNaN(parsedQuantity) || parsedQuantity < 1 ? 1 : parsedQuantity,
+                isNaN(parsedQuantity) || parsedQuantity < 1 ? 0 : parsedQuantity,
                 product.precioUnitario
-              ), 
+              ),
             }
           : product
       )
@@ -84,17 +94,21 @@ const CompraForm = () => {
 
   const handleUpdateField = (productId, field, value) => {
     setSelectedProducts((prevSelected) =>
-      prevSelected.map((product) =>
-        product.idProducto === productId
-          ? {
-              ...product,
-              [field]: value,
-              ...(field === "precioUnitario" && {
-                importe: calculateImporte(product.cantidad, value), 
-              }),
-            }
-          : product
-      )
+      prevSelected.map((product) => {
+        const parsedValue = parseNumber(value);
+        let updatedProduct = {
+          ...product,
+          [field]: value
+        };
+
+        if (field === "precioUnitario" || field === "cantidad") {
+          updatedProduct.importe = calculateImporte(
+            field === "cantidad" ? parsedValue : product.cantidad,
+            field === "precioUnitario" ? parsedValue : product.precioUnitario
+          );
+        }
+        return updatedProduct;
+      })
     );
   };
 
@@ -102,6 +116,15 @@ const CompraForm = () => {
     setSelectedProducts((prevSelected) =>
       prevSelected.filter((product) => product.idProducto !== productId)
     );
+    setValidationErrors(prev => {
+      const newErrors = { ...prev };
+      if (selectedProducts.length - 1 === 0) {
+        newErrors.selectedProducts = "Debe seleccionar al menos un producto.";
+      } else {
+        delete newErrors.selectedProducts;
+      }
+      return newErrors;
+    });
   };
 
   const handleChangeForm = (e) => {
@@ -110,36 +133,93 @@ const CompraForm = () => {
       ...formData,
       [name]: value,
     });
+    setValidationErrors(prev => {
+      const newErrors = { ...prev };
+      delete newErrors[name];
+      return newErrors;
+    });
   };
 
   const calculateImporte = (cantidad, precioUnitario) => {
-    if (cantidad && precioUnitario) {
-      return (parseFloat(cantidad) * parseFloat(precioUnitario)).toFixed(2);
-    }
-    return "0.00";
+    const qty = parseNumber(cantidad);
+    const pu = parseNumber(precioUnitario);
+    return (qty * pu).toFixed(2);
   };
 
   useEffect(() => {
     const newTotal = selectedProducts.reduce(
-      (sum, product) => sum + parseFloat(calculateImporte(product.cantidad, product.precioUnitario)),
+      (sum, product) => sum + parseNumber(calculateImporte(product.cantidad, product.precioUnitario)),
       0
     );
     setTotalImporteCompra(newTotal.toFixed(2));
   }, [selectedProducts]);
 
-  const handleSubmit = async () => {
+
+  // --- Función de Validación Modificada ---
+  const validateForm = () => {
+    const errors = {};
+
+    // Validar campos principales del formulario
+    if (!formData.numeroComprobante.trim()) {
+      errors.numeroComprobante = "El número de comprobante es requerido.";
+    }
+    if (!formData.proveedor) {
+      errors.proveedor = "Debe seleccionar un proveedor.";
+    }
+    if (!formData.usuario) {
+      errors.usuario = "Debe seleccionar un usuario.";
+    }
+
+    // Validar productos seleccionados
     if (selectedProducts.length === 0) {
-      alert("Por favor, selecciona al menos un producto para realizar la compra.");
+      errors.selectedProducts = "Debe seleccionar al menos un producto para la compra.";
+    } else {
+      selectedProducts.forEach((product, index) => {
+        if (!product.cantidad || parseNumber(product.cantidad) < 1) {
+          errors[`cantidad_${product.idProducto}`] = `La cantidad de ${product.nombreProducto} debe ser al menos 1.`;
+        }
+
+        // Lógica de validación del precio unitario:
+        // Si el nombre del producto es "Servicio Mecanico", se permite 0 o mayor.
+        // De lo contrario, debe ser mayor que 0.
+        if (product.nombreProducto.trim().toLowerCase() === "servicio mecanico") {
+          if (parseNumber(product.precioUnitario) < 0) {
+              errors[`precioUnitario_${product.idProducto}`] = `El precio unitario de ${product.nombreProducto} no puede ser negativo.`;
+          }
+        } else {
+          // Para todos los demás productos, debe ser estrictamente mayor que 0
+          if (!product.precioUnitario || parseNumber(product.precioUnitario) <= 0) {
+            errors[`precioUnitario_${product.idProducto}`] = `El precio unitario de ${product.nombreProducto} debe ser mayor que 0.`;
+          }
+        }
+
+        if (!product.precioVenta || parseNumber(product.precioVenta) <= 0) {
+          errors[`precioVenta_${product.idProducto}`] = `El precio de venta de ${product.nombreProducto} debe ser mayor que 0.`;
+        }
+      });
+    }
+
+    setValidationErrors(errors);
+    return Object.keys(errors).length === 0;
+  };
+
+
+  const handleSubmit = async () => {
+    setCompraRegistrada(false);
+    setErrorCompra(null);
+
+    if (!validateForm()) {
+      alert("Por favor, corrige los errores en el formulario antes de continuar.");
       return;
     }
 
     const detallesCompra = selectedProducts.map(
-      ({ idProducto, cantidad, precioUnitario, precioVenta, importe }) => ({
+      ({ idProducto, cantidad, precioUnitario, precioVenta }) => ({
         idProducto,
-        cantidad: parseInt(cantidad, 10), 
-        precioUnitario: parseNumber(precioUnitario), 
-        precioVenta: parseFloat(precioVenta), 
-        importe: parseFloat(importe), 
+        cantidad: parseInt(cantidad, 10),
+        precioUnitario: parseNumber(precioUnitario),
+        precioVenta: parseNumber(precioVenta),
+        importe: parseNumber(calculateImporte(cantidad, precioUnitario)),
       })
     );
 
@@ -148,10 +228,11 @@ const CompraForm = () => {
       idUsuario: formData.usuario,
       tipoComprobante: formData.tipoComprobante,
       numeroComprobante: formData.numeroComprobante,
-      total: parseFloat(totalImporteCompra), 
+      total: parseNumber(totalImporteCompra),
       detalles: detallesCompra,
     };
 
+    setLoading(true);
     try {
       await requestCompra(compraData);
       setCompraRegistrada(true);
@@ -163,18 +244,24 @@ const CompraForm = () => {
         proveedor: "",
         usuario: "",
       });
-      setTotalImporteCompra(0); 
+      setTotalImporteCompra(0);
+      setValidationErrors({});
       alert("Compra registrada exitosamente!");
     } catch (error) {
       console.error("Error al registrar la compra:", error);
-      setErrorCompra("Hubo un error al registrar la compra. Por favor, inténtalo de nuevo.");
+      setErrorCompra(error.response?.data?.message || "Hubo un error al registrar la compra. Por favor, inténtalo de nuevo.");
       setCompraRegistrada(false);
+    } finally {
+      setLoading(false);
     }
   };
 
   return (
     <div className="main-container compra-form-container">
       <h2>Registrar Compra</h2>
+
+      {errorCompra && <p className="error-message alert alert-danger">{errorCompra}</p>}
+      {compraRegistrada && <p className="success-message alert alert-success">Compra registrada exitosamente!</p>}
 
       <div className="search-bar">
         <input
@@ -214,10 +301,10 @@ const CompraForm = () => {
                       Presentación: {producto.presentacion}
                     </p>
                     <p className="product-purchase">
-                    Ultimo .P.U.: S/.{producto.ultimoPrecioUnitario}
+                      Ultimo .P.U.: S/.{producto.ultimoPrecioUnitario ? producto.ultimoPrecioUnitario.toFixed(2) : '0.00'}
                     </p>
                     <p className="product-sales">
-                    Ultimo .P.V.: S/. {producto.ultimoPrecioVenta}
+                      Ultimo .P.V.: S/. {producto.ultimoPrecioVenta ? producto.ultimoPrecioVenta.toFixed(2) : '0.00'}
                     </p>
                   </div>
                 </div>
@@ -250,13 +337,21 @@ const CompraForm = () => {
                 name="numeroComprobante"
                 value={formData.numeroComprobante}
                 onChange={handleChangeForm}
-                required
+                className={validationErrors.numeroComprobante ? 'input-error' : ''}
               />
+              {validationErrors.numeroComprobante && (
+                <p className="error-message">{validationErrors.numeroComprobante}</p>
+              )}
             </div>
 
             <div className="form-group">
               <label>Proveedor:</label>
-              <select name="proveedor" value={formData.proveedor} onChange={handleChangeForm} required>
+              <select
+                name="proveedor"
+                value={formData.proveedor}
+                onChange={handleChangeForm}
+                className={validationErrors.proveedor ? 'input-error' : ''}
+              >
                 <option value="">Seleccione un proveedor</option>
                 {proveedores.map((proveedor) => (
                   <option key={proveedor.idProveedor} value={proveedor.idProveedor}>
@@ -264,11 +359,19 @@ const CompraForm = () => {
                   </option>
                 ))}
               </select>
+              {validationErrors.proveedor && (
+                <p className="error-message">{validationErrors.proveedor}</p>
+              )}
             </div>
 
             <div className="form-group">
               <label>Usuario:</label>
-              <select name="usuario" value={formData.usuario} onChange={handleChangeForm} required>
+              <select
+                name="usuario"
+                value={formData.usuario}
+                onChange={handleChangeForm}
+                className={validationErrors.usuario ? 'input-error' : ''}
+              >
                 <option value="">Seleccione un usuario</option>
                 {usuarios.map((usuario) => (
                   <option key={usuario.idUsuario} value={usuario.idUsuario}>
@@ -276,19 +379,26 @@ const CompraForm = () => {
                   </option>
                 ))}
               </select>
+              {validationErrors.usuario && (
+                <p className="error-message">{validationErrors.usuario}</p>
+              )}
             </div>
           </div>
+
+          {validationErrors.selectedProducts && (
+            <p className="error-message alert alert-danger">{validationErrors.selectedProducts}</p>
+          )}
 
           <div className="table-container">
             <table className="purchase-table-content">
               <thead>
                 <tr>
-                  <th style={{ width: "50%" }}>Nombre</th>
-                  <th style={{ width: "5%" }}>Cant.</th>
+                  <th style={{ width: "40%" }}>Nombre</th>
+                  <th style={{ width: "10%" }}>Cant.</th>
                   <th style={{ width: "15%" }}>P. Unitario</th>
                   <th style={{ width: "15%" }}>P. Venta</th>
                   <th style={{ width: "15%" }}>Importe</th>
-                  <th style={{ width: "10%" }}></th>
+                  <th style={{ width: "5%" }}></th>
                 </tr>
               </thead>
               <tbody>
@@ -307,20 +417,22 @@ const CompraForm = () => {
                       <input
                         type="number"
                         min="1"
-                        value={producto.cantidad || 1}
+                        value={producto.cantidad}
                         onChange={(e) =>
                           handleUpdateQuantity(
                             producto.idProducto,
                             e.target.value
                           )
                         }
+                        className={validationErrors[`cantidad_${producto.idProducto}`] ? 'input-error' : ''}
                       />
                     </td>
                     <td>
                       <input
                         type="number"
                         step="0.01"
-                        value={producto.precioUnitario || 0}
+                        // El atributo min puede variar, la validación principal es en JS
+                        value={producto.precioUnitario}
                         onChange={(e) =>
                           handleUpdateField(
                             producto.idProducto,
@@ -328,13 +440,15 @@ const CompraForm = () => {
                             e.target.value
                           )
                         }
+                        className={validationErrors[`precioUnitario_${producto.idProducto}`] ? 'input-error' : ''}
                       />
                     </td>
                     <td>
                       <input
                         type="number"
                         step="0.01"
-                        value={producto.precioVenta || 0}
+                        min="0.01"
+                        value={producto.precioVenta}
                         onChange={(e) =>
                           handleUpdateField(
                             producto.idProducto,
@@ -342,6 +456,7 @@ const CompraForm = () => {
                             e.target.value
                           )
                         }
+                        className={validationErrors[`precioVenta_${producto.idProducto}`] ? 'input-error' : ''}
                       />
                     </td>
                     <td>
@@ -353,6 +468,31 @@ const CompraForm = () => {
                       </button>
                     </td>
                   </tr>
+                ))}
+                {selectedProducts.map(product => (
+                  <React.Fragment key={`errors-${product.idProducto}`}>
+                    {validationErrors[`cantidad_${product.idProducto}`] && (
+                      <tr>
+                        <td colSpan="6" className="error-message product-error-row">
+                          {validationErrors[`cantidad_${product.idProducto}`]}
+                        </td>
+                      </tr>
+                    )}
+                    {validationErrors[`precioUnitario_${product.idProducto}`] && (
+                      <tr>
+                        <td colSpan="6" className="error-message product-error-row">
+                          {validationErrors[`precioUnitario_${product.idProducto}`]}
+                        </td>
+                      </tr>
+                    )}
+                    {validationErrors[`precioVenta_${product.idProducto}`] && (
+                      <tr>
+                        <td colSpan="6" className="error-message product-error-row">
+                          {validationErrors[`precioVenta_${product.idProducto}`]}
+                        </td>
+                      </tr>
+                    )}
+                  </React.Fragment>
                 ))}
               </tbody>
             </table>
@@ -366,12 +506,10 @@ const CompraForm = () => {
             <button
               className="realizar-compra-button"
               onClick={handleSubmit}
-              disabled={selectedProducts.length === 0 || loading}
+              disabled={loading}
             >
               {loading ? "Registrando Compra..." : "Registrar Compra"}
             </button>
-            {errorCompra && <p className="error-message">{errorCompra}</p>}
-            {compraRegistrada && <p className="success-message">Compra registrada</p>}
           </div>
         </div>
       </div>
