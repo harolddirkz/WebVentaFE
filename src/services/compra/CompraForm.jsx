@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useMemo } from "react";
-import { getProductosPorEstado, getProveedores, getUsuarios, requestCompra } from "../api";
+import { getProductosPorEstado, getProveedores, getUsuarios, requestCompra, getLoggedInUser } from "../api";
 import "../../styles/pages/CompraForm.css";
 
 const CompraForm = () => {
@@ -20,10 +20,15 @@ const CompraForm = () => {
   const [totalImporteCompra, setTotalImporteCompra] = useState(0);
 
   const [validationErrors, setValidationErrors] = useState({});
+  const [currentUser, setCurrentUser] = useState(null); 
+  const [loadingUser, setLoadingUser] = useState(true); 
+  const [userError, setUserError] = useState(null); 
+
 
   useEffect(() => {
     const fetchData = async () => {
-      setLoading(true);
+      setLoading(true); 
+      setUserError(null); 
       try {
         const productosData = await getProductosPorEstado();
         setProductos(productosData);
@@ -31,6 +36,16 @@ const CompraForm = () => {
         setProveedores(proveedoresData || []);
         const usuariosData = await getUsuarios();
         setUsuarios(usuariosData || []);
+
+        setLoadingUser(true); 
+        const loggedInUser = await getLoggedInUser();
+        setCurrentUser(loggedInUser); 
+        setFormData(prevData => ({
+          ...prevData,
+          usuario: loggedInUser.idUsuario, 
+        }));
+        setLoadingUser(false); 
+
       } catch (error) {
         console.error("Error al cargar datos:", error);
         setErrorCompra("Error al cargar los datos iniciales. Por favor, intente recargar la página.");
@@ -55,7 +70,6 @@ const CompraForm = () => {
         {
           ...producto,
           cantidad: 1,
-          // Si el producto es "Servicio Mecanico", inicializar precioUnitario en 0
           precioUnitario: producto.nombreProducto === "Servicio Mecanico" ? 0 : (producto.ultimoPrecioUnitario || 0),
           precioVenta: producto.ultimoPrecioVenta || 0,
           importe: (1 * (producto.nombreProducto === "Servicio Mecanico" ? 0 : (producto.ultimoPrecioUnitario || 0))).toFixed(2),
@@ -155,11 +169,10 @@ const CompraForm = () => {
   }, [selectedProducts]);
 
 
-  // --- Función de Validación Modificada ---
   const validateForm = () => {
     const errors = {};
 
-    // Validar campos principales del formulario
+
     if (!formData.numeroComprobante.trim()) {
       errors.numeroComprobante = "El número de comprobante es requerido.";
     }
@@ -170,7 +183,6 @@ const CompraForm = () => {
       errors.usuario = "Debe seleccionar un usuario.";
     }
 
-    // Validar productos seleccionados
     if (selectedProducts.length === 0) {
       errors.selectedProducts = "Debe seleccionar al menos un producto para la compra.";
     } else {
@@ -179,15 +191,12 @@ const CompraForm = () => {
           errors[`cantidad_${product.idProducto}`] = `La cantidad de ${product.nombreProducto} debe ser al menos 1.`;
         }
 
-        // Lógica de validación del precio unitario:
-        // Si el nombre del producto es "Servicio Mecanico", se permite 0 o mayor.
-        // De lo contrario, debe ser mayor que 0.
         if (product.nombreProducto.trim().toLowerCase() === "servicio mecanico") {
           if (parseNumber(product.precioUnitario) < 0) {
               errors[`precioUnitario_${product.idProducto}`] = `El precio unitario de ${product.nombreProducto} no puede ser negativo.`;
           }
         } else {
-          // Para todos los demás productos, debe ser estrictamente mayor que 0
+
           if (!product.precioUnitario || parseNumber(product.precioUnitario) <= 0) {
             errors[`precioUnitario_${product.idProducto}`] = `El precio unitario de ${product.nombreProducto} debe ser mayor que 0.`;
           }
@@ -366,19 +375,27 @@ const CompraForm = () => {
 
             <div className="form-group">
               <label>Usuario:</label>
-              <select
-                name="usuario"
-                value={formData.usuario}
-                onChange={handleChangeForm}
+              <input
+                type="text"
+                name="usuarioNombre"
+                value={
+                  loadingUser
+                    ? 'Cargando usuario...'
+                    : userError
+                    ? 'Error al cargar usuario'
+                    : currentUser
+                    ? currentUser.nombre 
+                    : 'No hay usuario'
+                }
+                disabled={true} 
                 className={validationErrors.usuario ? 'input-error' : ''}
-              >
-                <option value="">Seleccione un usuario</option>
-                {usuarios.map((usuario) => (
-                  <option key={usuario.idUsuario} value={usuario.idUsuario}>
-                    {usuario.nombre}
-                  </option>
-                ))}
-              </select>
+              />
+              {userError && <p className="error-message">{userError}</p>}
+              <input
+                type="hidden"
+                name="usuario" 
+                value={formData.usuario} 
+              />
               {validationErrors.usuario && (
                 <p className="error-message">{validationErrors.usuario}</p>
               )}
@@ -431,7 +448,6 @@ const CompraForm = () => {
                       <input
                         type="number"
                         step="0.01"
-                        // El atributo min puede variar, la validación principal es en JS
                         value={producto.precioUnitario}
                         onChange={(e) =>
                           handleUpdateField(

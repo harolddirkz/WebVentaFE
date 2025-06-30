@@ -322,7 +322,24 @@
 
 .product-error-row {
   text-align: left;
-  padding-left: 10px; /* Ajusta según tu diseño */
+  padding-left: 10px;
   font-style: italic;
   font-weight: bold;
+}
+
+.input-error {
+    border: 1px solid red;
+}
+
+.error-message {
+    color: red;
+    font-size: 0.85em;
+    margin-top: 5px;
+}
+
+.input-error-select .react-select__control {
+    border-color: red !important;
+}
+.input-error-select .react-select__control:hover {
+    border-color: red !important;
 }

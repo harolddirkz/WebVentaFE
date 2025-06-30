@@ -35,7 +35,12 @@ api.interceptors.response.use(
 
 export const loginUser = async (credentials) => {
   try {
-    const response = await axios.post(`${API_URL}/api/auth/login`, credentials); 
+    const response = await axios.post(`${API_URL}/api/auth/login`, credentials);
+    if (response.data && response.data.jwt) {
+      localStorage.setItem('jwt_token', response.data.jwt);
+      localStorage.setItem('isAuthenticated', 'true');
+      localStorage.setItem('user_roles', JSON.stringify(response.data.roles));
+    } 
     return response.data;
   } catch (error) {
     console.error("Error during login:", error);
@@ -78,6 +83,17 @@ export const updateUsuario = async (usuario) => {
     throw error;
   }
 };
+
+export const getLoggedInUser = async () => {
+  try {
+    const response = await api.get(`${API_URL}/usuario/me`);
+    return response.data;
+  } catch (error) {
+    console.error("Error al obtener el usuario logueado:", error.response?.data || error.message);
+    throw error;
+  }
+};
+
 
 // fin Funciones para manejar usuarios
 

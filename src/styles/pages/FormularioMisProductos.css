@@ -399,3 +399,20 @@
   background-color: #ccc;
   cursor: not-allowed;
 }
+
+.input-error {
+    border: 1px solid red;
+}
+
+.error-message {
+    color: red;
+    font-size: 0.85em;
+    margin-top: 5px;
+}
+
+.input-error-select .react-select__control {
+    border-color: red !important;
+}
+.input-error-select .react-select__control:hover {
+    border-color: red !important;
+}
