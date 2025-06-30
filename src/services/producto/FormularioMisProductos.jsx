@@ -3,6 +3,8 @@ import { getMyProductos, registrarVenta, getClientes, crearClienteRapido, getNum
 import "../../styles/pages/FormularioMisProductos.css";
 import Select from 'react-select';
 import Modal from 'react-modal';
+import DatePicker from 'react-datepicker';
+import 'react-datepicker/dist/react-datepicker.css';
 
 const customStyles = {
     content: {
@@ -30,24 +32,26 @@ const MyProductList = () => {
     const [formData, setFormData] = useState({
         tipoComprobante: "NOTA_DE_VENTA",
         numeroComprobante: "",
-        cliente: null, 
+        cliente: null,
         usuario: "",
+        fechaVenta: new Date(),
     });
 
     const [validationErrors, setValidationErrors] = useState({});
+
     const [modalIsOpen, setModalIsOpen] = useState(false);
     const [nuevoCliente, setNuevoCliente] = useState({
-        nombreCliente: "", 
+        nombreCliente: "",
         tipoDocumento: "DNI",
         numeroDocumento: "",
         telefono: "",
     });
     const [errorNuevoCliente, setErrorNuevoCliente] = useState(null);
-    const [validationErrorsNuevoCliente, setValidationErrorsNuevoCliente] = useState({}); 
+    const [validationErrorsNuevoCliente, setValidationErrorsNuevoCliente] = useState({});
     const [cargandoNuevoCliente, setCargandoNuevoCliente] = useState(false);
 
     const [cargandoNumeracion, setCargandoNumeracion] = useState(false);
-    const [loading, setLoading] = useState(false); 
+    const [loading, setLoading] = useState(false);
 
     const [currentUser, setCurrentUser] = useState(null);
     const [loadingUser, setLoadingUser] = useState(true);
@@ -70,12 +74,13 @@ const MyProductList = () => {
             try {
                 const productsData = await getMyProductos();
                 setProductos(productsData);
+
                 setLoadingUser(true);
                 const loggedInUser = await getLoggedInUser();
                 setCurrentUser(loggedInUser);
                 setFormData(prevData => ({
                     ...prevData,
-                    usuario: loggedInUser.idUsuario, 
+                    usuario: loggedInUser.idUsuario,
                 }));
                 setLoadingUser(false);
 
@@ -103,7 +108,7 @@ const MyProductList = () => {
     useEffect(() => {
         const fetchNumeracion = async () => {
             setCargandoNumeracion(true);
-            setValidationErrors(prevErrors => ({ ...prevErrors, numeroComprobante: null })); // Limpia el error al cambiar tipo
+            setValidationErrors(prevErrors => ({ ...prevErrors, numeroComprobante: null }));
             try {
                 const numeracionData = await getNumeracionComprobante(formData.tipoComprobante);
                 if (numeracionData && numeracionData.serieComprobante) {
@@ -140,7 +145,7 @@ const MyProductList = () => {
         if (!selectedProducts.some((p) => p.idProducto === producto.idProducto)) {
             setSelectedProducts([
                 ...selectedProducts,
-                { ...producto, cantidad: 1 } 
+                { ...producto, cantidad: 1 }
             ]);
             setValidationErrors(prevErrors => ({ ...prevErrors, selectedProducts: null }));
         }
@@ -157,13 +162,12 @@ const MyProductList = () => {
                             isNaN(parsedQuantity) || parsedQuantity < 1
                                 ? 1
                                 : parsedQuantity > product.cantidadStock
-                                    ? product.cantidadStock 
+                                    ? product.cantidadStock
                                     : parsedQuantity,
                     }
                     : product
             )
         );
-
         setValidationErrors(prevErrors => ({ ...prevErrors, productQuantities: null }));
     };
 
@@ -183,9 +187,18 @@ const MyProductList = () => {
         setValidationErrors(prevErrors => ({ ...prevErrors, [name]: null }));
     };
 
+    const handleDateChange = (date) => {
+        setFormData(prevData => ({
+            ...prevData,
+            fechaVenta: date,
+        }));
+        setValidationErrors(prevErrors => ({ ...prevErrors, fechaVenta: null }));
+    };
+
+
     const handleClienteChange = (selectedOption) => {
         setFormData({ ...formData, cliente: selectedOption ? selectedOption.value : null });
-        setValidationErrors(prevErrors => ({ ...prevErrors, cliente: null })); 
+        setValidationErrors(prevErrors => ({ ...prevErrors, cliente: null }));
     };
 
     const calcularImporte = (producto) => {
@@ -210,14 +223,6 @@ const MyProductList = () => {
         );
         setTotalImporte(newTotal);
     }, [selectedProducts]);
-
-    const getTodayDate = () => {
-        const now = new Date();
-        const year = now.getFullYear();
-        const month = String(now.getMonth() + 1).padStart(2, '0');
-        const day = String(now.getDate()).padStart(2, '0');
-        return `${year}-${month}-${day}`;
-    };
 
     const validateVentaForm = () => {
         let errors = {};
@@ -251,9 +256,18 @@ const MyProductList = () => {
         }
 
         if (!formData.usuario) {
-            errors.usuario = "El usuario de la venta es requerido."; 
+            errors.usuario = "El usuario de la venta es requerido.";
             isValid = false;
         }
+        
+        if (!formData.fechaVenta) {
+            errors.fechaVenta = "La fecha de venta es requerida.";
+            isValid = false;
+        } else if (formData.fechaVenta > new Date()) { 
+            errors.fechaVenta = "La fecha de venta no puede ser en el futuro.";
+            isValid = false;
+        }
+
 
         if (totalImporte <= 0) {
             errors.totalImporte = "El importe total debe ser mayor a 0.";
@@ -281,9 +295,9 @@ const MyProductList = () => {
         if (parts.length === 2) {
             serieComprobanteToSend = parts[0];
             numeroComprobanteToSend = parseInt(parts[1], 10);
-        } else {
-            console.warn("El formato de numeroComprobante no es 'SERIE-NUMERO'. Enviando serie vacía y número nulo.");
         }
+
+        const formattedDate = formData.fechaVenta.toISOString().split('T')[0];
 
         const detallesVenta = selectedProducts.map((producto) => ({
             idProducto: producto.idProducto,
@@ -301,7 +315,7 @@ const MyProductList = () => {
             tipoComprobante: formData.tipoComprobante,
             serieComprobante: serieComprobanteToSend,
             numeroComprobante: numeroComprobanteToSend,
-            fechaVenta: getTodayDate(),
+            fechaVenta: formattedDate, 
             metodoPago: "Efectivo",
             detalles: detallesVenta,
         };
@@ -312,7 +326,12 @@ const MyProductList = () => {
             setErrorVenta(null);
             setSelectedProducts([]);
             setTotalImporte(0);
-            setFormData(prevData => ({ ...prevData, numeroComprobante: "", cliente: null })); 
+            setFormData(prevData => ({
+                ...prevData,
+                numeroComprobante: "",
+                cliente: null,
+                fechaVenta: new Date(), 
+            }));
             alert("Venta realizada con éxito!");
 
             try {
@@ -335,7 +354,7 @@ const MyProductList = () => {
 
         } catch (error) {
             console.error("Error al realizar la venta:", error);
-            setErrorVenta("Hubo un error al realizar la venta. Por favor, inténtalo de nuevo.");
+            setErrorVenta(error.response?.data?.message || "Hubo un error al realizar la venta. Por favor, inténtalo de nuevo.");
             setVentaRealizada(false);
         }
     };
@@ -343,8 +362,8 @@ const MyProductList = () => {
     const openModal = () => {
         setModalIsOpen(true);
         setErrorNuevoCliente(null);
-        setValidationErrorsNuevoCliente({}); 
-        setNuevoCliente({ 
+        setValidationErrorsNuevoCliente({});
+        setNuevoCliente({
             nombreCliente: "",
             tipoDocumento: "DNI",
             numeroDocumento: "",
@@ -362,7 +381,7 @@ const MyProductList = () => {
     const handleNuevoClienteChange = (e) => {
         const { name, value } = e.target;
         setNuevoCliente({ ...nuevoCliente, [name]: value });
-        setValidationErrorsNuevoCliente(prevErrors => ({ ...prevErrors, [name]: null })); 
+        setValidationErrorsNuevoCliente(prevErrors => ({ ...prevErrors, [name]: null }));
     };
 
     const validateNuevoClienteForm = () => {
@@ -414,12 +433,12 @@ const MyProductList = () => {
         }
 
         setCargandoNuevoCliente(true);
-        setErrorNuevoCliente(null); 
+        setErrorNuevoCliente(null);
         try {
             const nuevoClienteResponse = await crearClienteRapido(nuevoCliente);
             if (nuevoClienteResponse && nuevoClienteResponse.idCliente && nuevoClienteResponse.nombreCliente) {
                 const nuevoClienteOption = { value: nuevoClienteResponse.idCliente, label: nuevoClienteResponse.nombreCliente };
-                setClientes(prevClientes => [...prevClientes, nuevoClienteOption]); 
+                setClientes(prevClientes => [...prevClientes, nuevoClienteOption]);
                 setFormData(prevData => ({ ...prevData, cliente: nuevoClienteOption.value }));
                 closeModal();
                 alert(`Cliente "${nuevoClienteResponse.nombreCliente}" creado exitosamente.`);
@@ -428,7 +447,6 @@ const MyProductList = () => {
             }
         } catch (error) {
             console.error("Error al crear cliente rápido:", error);
-
             setErrorNuevoCliente(error.response?.data?.message || "Error de conexión al crear el cliente.");
         } finally {
             setCargandoNuevoCliente(false);
@@ -448,9 +466,9 @@ const MyProductList = () => {
 
             <div className="content-container">
                 <div className="products-column">
-                    <h2 className="title">Productos Disponibles</h2> 
+                    <h2 className="title">Productos Disponibles</h2>
                     <div className="products-grid">
-                        {loading ? ( 
+                        {loading ? (
                             <p>Cargando productos...</p>
                         ) : productos.length === 0 ? (
                             <p>No hay productos disponibles.</p>
@@ -466,7 +484,7 @@ const MyProductList = () => {
                                         <button
                                             className="select-button"
                                             onClick={() => handleSelectProduct(producto)}
-                                            disabled={producto.cantidadStock <= 0} 
+                                            disabled={producto.cantidadStock <= 0}
                                         >
                                             {producto.cantidadStock <= 0 ? "Sin Stock" : "Seleccionar"}
                                         </button>
@@ -522,7 +540,7 @@ const MyProductList = () => {
                                 type="text"
                                 name="numeroComprobante"
                                 value={cargandoNumeracion ? "Cargando..." : formData.numeroComprobante}
-                                disabled={true} 
+                                disabled={true}
                                 className={validationErrors.numeroComprobante ? 'input-error' : ''}
                             />
                             {cargandoNumeracion && <p className="loading-message">Obteniendo numeración...</p>}
@@ -538,8 +556,8 @@ const MyProductList = () => {
                                 options={clientes}
                                 placeholder="Buscar o seleccionar cliente..."
                                 isSearchable
-                                classNamePrefix="react-select" 
-                                className={validationErrors.cliente ? 'input-error-select' : ''} 
+                                classNamePrefix="react-select"
+                                className={validationErrors.cliente ? 'input-error-select' : ''}
                             />
                             {validationErrors.cliente && <p className="error-message">{validationErrors.cliente}</p>}
                             <button type="button" className="button-nuevo-cliente" onClick={openModal}>
@@ -562,7 +580,7 @@ const MyProductList = () => {
                                                 : 'No hay usuario'
                                 }
                                 disabled={true}
-                                className={validationErrors.usuario ? 'input-error' : ''} 
+                                className={validationErrors.usuario ? 'input-error' : ''}
                             />
                             {userError && <p className="error-message">{userError}</p>}
                             {validationErrors.usuario && <p className="error-message">{validationErrors.usuario}</p>}
@@ -572,6 +590,23 @@ const MyProductList = () => {
                                 value={formData.usuario}
                             />
                         </div>
+
+                        <div className="form-group">
+                            <label htmlFor="fechaVenta">Fecha de Venta:</label>
+                            <DatePicker
+                                id="fechaVenta"
+                                selected={formData.fechaVenta} 
+                                onChange={handleDateChange} 
+                                dateFormat="yyyy-MM-dd" 
+                                maxDate={new Date()} 
+                                showYearDropdown 
+                                scrollableYearDropdown 
+                                yearDropdownItemNumber={15} 
+                                className={`react-datepicker-input ${validationErrors.fechaVenta ? 'input-error' : ''}`} 
+                            />
+                            {validationErrors.fechaVenta && <p className="error-message">{validationErrors.fechaVenta}</p>}
+                        </div>
+
                     </div>
 
                     <h3>Productos Seleccionados</h3>
@@ -611,7 +646,6 @@ const MyProductList = () => {
                                                 <input
                                                     type="number"
                                                     min="1"
-
                                                     value={producto.cantidad || 1}
                                                     onChange={(e) =>
                                                         handleUpdateQuantity(

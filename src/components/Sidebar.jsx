@@ -124,9 +124,30 @@ const Sidebar = () => {
         <Nav.Link href="/productos/update-stock">
           <FontAwesomeIcon icon={faScrewdriverWrench} /> Mantenimiento Stock
         </Nav.Link>
-        <Nav.Link href="/users">
-          <FontAwesomeIcon icon={faUserTie} /> Usuarios
-        </Nav.Link>
+        <div className="nav-item">
+          <div className="nav-link dropdown-toggle" onClick={toggleUsuarios}>
+            <span>
+              <FontAwesomeIcon icon={faUserTie} /> Usuarios  
+            </span>
+            <span className="chevron">
+              {openUsuarios ? (
+                <FontAwesomeIcon icon={faChevronDown} />
+              ) : (
+                <FontAwesomeIcon icon={faChevronRight} />
+              )}
+            </span>
+          </div>
+          {openUsuarios&& (
+            <div className="sub-menu">
+              <Nav.Link href="/usuario/create" className="sub-item">
+                <FontAwesomeIcon icon={faPlus} /> Crear Usuario
+              </Nav.Link>
+              <Nav.Link href="/usuario/list" className="sub-item">
+                <FontAwesomeIcon icon={faListOl} /> Listar Usuario
+              </Nav.Link>
+            </div>
+          )}
+        </div>
 
         <div className="nav-item">
           <div className="nav-link dropdown-toggle" onClick={toggleCategories}>
@@ -228,30 +249,6 @@ const Sidebar = () => {
           )}
         </div>
 
-        <div className="nav-item">
-          <div className="nav-link dropdown-toggle" onClick={toggleUsuarios}>
-            <span>
-              <FontAwesomeIcon icon={faLocationDot} /> Usuarios  
-            </span>
-            <span className="chevron">
-              {openUsuarios ? (
-                <FontAwesomeIcon icon={faChevronDown} />
-              ) : (
-                <FontAwesomeIcon icon={faChevronRight} />
-              )}
-            </span>
-          </div>
-          {openUsuarios&& (
-            <div className="sub-menu">
-              <Nav.Link href="/usuario/create" className="sub-item">
-                <FontAwesomeIcon icon={faPlus} /> Crear Usuario
-              </Nav.Link>
-              <Nav.Link href="/usuario/list" className="sub-item">
-                <FontAwesomeIcon icon={faListOl} /> Listar Usuario
-              </Nav.Link>
-            </div>
-          )}
-        </div>
       </Nav>
     </div>
   );

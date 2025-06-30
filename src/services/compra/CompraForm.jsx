@@ -1,6 +1,8 @@
 import React, { useState, useEffect, useMemo } from "react";
 import { getProductosPorEstado, getProveedores, getUsuarios, requestCompra, getLoggedInUser } from "../api";
 import "../../styles/pages/CompraForm.css";
+import DatePicker from 'react-datepicker';
+import 'react-datepicker/dist/react-datepicker.css';
 
 const CompraForm = () => {
   const [productos, setProductos] = useState([]);
@@ -16,6 +18,7 @@ const CompraForm = () => {
     numeroComprobante: "",
     proveedor: "",
     usuario: "",
+    fechaCompra: new Date(),
   });
   const [totalImporteCompra, setTotalImporteCompra] = useState(0);
 
@@ -154,6 +157,14 @@ const CompraForm = () => {
     });
   };
 
+  const handleDateChange = (date) => {
+    setFormData(prevData => ({
+      ...prevData,
+      fechaCompra: date,
+    }));
+    setValidationErrors(prevErrors => ({ ...prevErrors, fechaCompra: null })); 
+  };
+
   const calculateImporte = (cantidad, precioUnitario) => {
     const qty = parseNumber(cantidad);
     const pu = parseNumber(precioUnitario);
@@ -181,6 +192,12 @@ const CompraForm = () => {
     }
     if (!formData.usuario) {
       errors.usuario = "Debe seleccionar un usuario.";
+    }
+
+    if (!formData.fechaCompra) {
+      errors.fechaCompra = "La fecha de compra es requerida.";
+    } else if (formData.fechaCompra > new Date()) {
+      errors.fechaCompra = "La fecha de compra no puede ser en el futuro.";
     }
 
     if (selectedProducts.length === 0) {
@@ -222,6 +239,8 @@ const CompraForm = () => {
       return;
     }
 
+    const formattedFechaCompra = formData.fechaCompra.toISOString().split('T')[0];
+
     const detallesCompra = selectedProducts.map(
       ({ idProducto, cantidad, precioUnitario, precioVenta }) => ({
         idProducto,
@@ -252,6 +271,7 @@ const CompraForm = () => {
         numeroComprobante: "",
         proveedor: "",
         usuario: "",
+        fechaCompra: new Date(),
       });
       setTotalImporteCompra(0);
       setValidationErrors({});
@@ -399,6 +419,22 @@ const CompraForm = () => {
               {validationErrors.usuario && (
                 <p className="error-message">{validationErrors.usuario}</p>
               )}
+            </div>
+
+            <div className="form-group">
+                <label htmlFor="fechaCompra">Fecha de Compra:</label>
+                <DatePicker
+                    id="fechaCompra"
+                    selected={formData.fechaCompra}
+                    onChange={handleDateChange}
+                    dateFormat="yyyy-MM-dd"
+                    maxDate={new Date()} 
+                    showYearDropdown 
+                    scrollableYearDropdown 
+                    yearDropdownItemNumber={15}
+                    className={`react-datepicker-input ${validationErrors.fechaCompra ? 'input-error' : ''}`}
+                />
+                {validationErrors.fechaCompra && <p className="error-message">{validationErrors.fechaCompra}</p>}
             </div>
           </div>
 
