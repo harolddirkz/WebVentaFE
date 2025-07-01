@@ -1,8 +1,8 @@
-import React, { useState, useEffect } from "react";
+import React, { useState, useEffect, useMemo } from "react";
 import { getMyProductos, getProductoById, updateProducto, getUnidadMedida, getCategorias } from "../api";
 import "../../styles/pages/ReporteStockColor.css";
 
-const ReporteStockColor = () => {
+const ProductList = () => {
   const [productos, setProductos] = useState([]);
   const [selectedProducto, setSelectedProducto] = useState(null);
   const [searchTerm, setSearchTerm] = useState("");
@@ -31,7 +31,6 @@ const ReporteStockColor = () => {
   useEffect(() => {
     const fetchData = async () => {
       try {
-        // CAMBIO AQUÍ: Usamos getMyProductos en lugar de getProductos
         const productosData = await getMyProductos();
         const unidadesMedidaData = await getUnidadMedida();
         const categoriasData = await getCategorias();
@@ -47,21 +46,49 @@ const ReporteStockColor = () => {
     fetchData();
   }, [actualizarLista]);
 
-  // Función para determinar la clase de color basada en el stock
-  const getStockColorClass = (cantidadStock) => {
+  const getStockOrderValue = (cantidadStock) => {
     if (cantidadStock === 1) {
-      return "stock-low"; // Rojo suave
+      return 1; 
     } else if (cantidadStock >= 2 && cantidadStock <= 5) {
-      return "stock-medium"; // Naranja
+      return 2; 
     } else if (cantidadStock >= 6) {
-      return "stock-high"; // Verde suave
+      return 3; 
     }
-    return ""; // Por defecto, sin color si no cumple ninguna condición
+    return 4;
   };
 
-  const filteredProductos = productos.filter((producto) =>
-    producto.nombreProducto.toLowerCase().includes(searchTerm.toLowerCase())
-  );
+  const getStockColorClass = (cantidadStock) => {
+    if (cantidadStock === 1) {
+      return "stock-low"; 
+    } else if (cantidadStock >= 2 && cantidadStock <= 5) {
+      return "stock-medium"; 
+    } else if (cantidadStock >= 6) {
+      return "stock-high"; 
+    }
+    return "";
+  };
+
+  const sortedAndFilteredProductos = useMemo(() => {
+    let currentProductos = productos;
+
+    if (searchTerm) {
+      currentProductos = productos.filter((producto) =>
+        producto.nombreProducto.toLowerCase().includes(searchTerm.toLowerCase())
+      );
+    }
+
+    return [...currentProductos].sort((a, b) => {
+      const orderA = getStockOrderValue(a.cantidadStock);
+      const orderB = getStockOrderValue(b.cantidadStock);
+
+      if (orderA !== orderB) {
+        return orderA - orderB; 
+      }
+
+      return a.nombreProducto.localeCompare(b.nombreProducto);
+    });
+  }, [productos, searchTerm]);
+
 
   const handleEditarProducto = async (idProducto) => {
     try {
@@ -74,7 +101,6 @@ const ReporteStockColor = () => {
         nombreProducto: productoData.nombreProducto,
         marca: productoData.marca,
         descripcion: productoData.descripcion,
-        // Asumiendo que `estado` y las fechas vienen en `productoData` de `getProductoById`
         estado: productoData.estado || "",
         fechaActivo: fechaActivo,
         fechaInactivo: fechaInactivo,
@@ -108,13 +134,12 @@ const ReporteStockColor = () => {
     }
 
     try {
-      // Si `updateProducto` requiere el `idProducto` en el cuerpo o como parte de la URL
-      // asegúrate de que `formValues` lo contenga o pásalo como argumento si la API lo espera separado.
-      await updateProducto(formValues.idProducto, formValues); // Asumiendo que updateProducto necesita id y el objeto formValues
+      await updateProducto(formValues.idProducto, formValues);
       const updatedProductos = productos.map((prod) =>
         prod.idProducto === formValues.idProducto ? { ...prod, ...formValues } : prod
       );
       setProductos(updatedProductos);
+      
       setUpdateSuccess(true);
       setUpdateError(null);
       setMostrarEditar(false);
@@ -162,8 +187,7 @@ const ReporteStockColor = () => {
           <h2 className="title">Lista de Productos</h2>
           {fetchError && <p className="error-message">{fetchError}</p>}
           <div className="products-grid">
-            {filteredProductos.map((producto) => (
-              // APLICAMOS LA CLASE DE COLOR AQUÍ
+            {sortedAndFilteredProductos.map((producto) => (
               <div
                 key={producto.idProducto}
                 className={`product-card ${getStockColorClass(producto.cantidadStock)}`}
@@ -182,7 +206,6 @@ const ReporteStockColor = () => {
                   <p className="product-presentation">
                     Presentación: {producto.presentacion}
                   </p>
-                  {/* Agregamos la cantidad de stock */}
                   <p className="product-stock">Stock: {producto.cantidadStock}</p>
                   <button
                     className="select-button"
@@ -226,7 +249,7 @@ const ReporteStockColor = () => {
                     value={formValues.idUnidadMedida}
                     onChange={handleInputChange}
                   >
-                    <option value="">Seleccione</option> {/* Opción por defecto */}
+                    <option value="">Seleccione</option>
                     {unidadesMedida.map((unidad) => (
                       <option
                         key={unidad.idUnidadMedida}
@@ -244,7 +267,7 @@ const ReporteStockColor = () => {
                     value={formValues.idCategoria}
                     onChange={handleInputChange}
                   >
-                    <option value="">Seleccione</option> {/* Opción por defecto */}
+                    <option value="">Seleccione</option>
                     {categorias.map((categoria) => (
                       <option
                         key={categoria.idCategoria}
@@ -344,4 +367,4 @@ const ReporteStockColor = () => {
   );
 };
 
-export default ReporteStockColor;
+export default ProductList;
