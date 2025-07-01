@@ -38,7 +38,6 @@ const MyProductList = () => {
     });
 
     const [validationErrors, setValidationErrors] = useState({});
-
     const [modalIsOpen, setModalIsOpen] = useState(false);
     const [nuevoCliente, setNuevoCliente] = useState({
         tipoDocumento: "DNI",
@@ -55,7 +54,18 @@ const MyProductList = () => {
     const [currentUser, setCurrentUser] = useState(null);
     const [loadingUser, setLoadingUser] = useState(true);
     const [userError, setUserError] = useState(null);
+    const [showModal, setShowModal] = useState(false);
+    const [selectedImage, setSelectedImage] = useState('');
 
+    const handleImageClick = (imageUrl) => {
+        setSelectedImage(imageUrl);
+        setShowModal(true);
+    };
+
+    const closeModalImage = () => {
+        setShowModal(false);
+        setSelectedImage('');
+    };
     const tipoComprobanteOptions = [
         "BOLETA_DE_VENTA",
         "FACTURA",
@@ -73,7 +83,6 @@ const MyProductList = () => {
             try {
                 const productsData = await getMyProductos();
                 setProductos(productsData);
-
                 setLoadingUser(true);
                 const loggedInUser = await getLoggedInUser();
                 setCurrentUser(loggedInUser);
@@ -82,7 +91,6 @@ const MyProductList = () => {
                     usuario: loggedInUser.idUsuario,
                 }));
                 setLoadingUser(false);
-
                 const clientesData = await getClientes();
                 setClientes(clientesData.map(cliente => ({
                     value: cliente.idCliente,
@@ -100,7 +108,6 @@ const MyProductList = () => {
                 setLoading(false);
             }
         };
-
         fetchInitialData();
     }, []);
 
@@ -132,9 +139,27 @@ const MyProductList = () => {
                 setCargandoNumeracion(false);
             }
         };
-
         fetchNumeracion();
     }, [formData.tipoComprobante]);
+
+    useEffect(() => {
+        const handleEscapeKey = (event) => {
+            if (event.key === 'Escape') {
+                closeModalImage();
+            }
+        };
+
+        if (showModal) {
+            document.addEventListener('keydown', handleEscapeKey);
+        } else {
+            document.removeEventListener('keydown', handleEscapeKey);
+        }
+
+        // Función de limpieza: se ejecuta cuando el componente se desmonta o cuando showModal cambia a false
+        return () => {
+            document.removeEventListener('keydown', handleEscapeKey);
+        };
+    }, [showModal]);
 
     const filteredProducts = productos.filter((producto) =>
         producto.nombreProducto.toLowerCase().includes(searchTerm.toLowerCase())
@@ -194,7 +219,6 @@ const MyProductList = () => {
         setValidationErrors(prevErrors => ({ ...prevErrors, fechaVenta: null }));
     };
 
-
     const handleClienteChange = (selectedOption) => {
         setFormData({ ...formData, cliente: selectedOption ? selectedOption.value : null });
         setValidationErrors(prevErrors => ({ ...prevErrors, cliente: null }));
@@ -238,27 +262,22 @@ const MyProductList = () => {
                 }
             });
         }
-
         if (!formData.tipoComprobante) {
             errors.tipoComprobante = "El tipo de comprobante es requerido.";
             isValid = false;
         }
-
         if (!formData.numeroComprobante || formData.numeroComprobante === "Error al cargar") {
             errors.numeroComprobante = "La numeración del comprobante es requerida y debe ser válida.";
             isValid = false;
         }
-
         if (!formData.cliente) {
             errors.cliente = "Debe seleccionar un cliente.";
             isValid = false;
         }
-
         if (!formData.usuario) {
             errors.usuario = "El usuario de la venta es requerido.";
             isValid = false;
         }
-        
         if (!formData.fechaVenta) {
             errors.fechaVenta = "La fecha de venta es requerida.";
             isValid = false;
@@ -266,13 +285,10 @@ const MyProductList = () => {
             errors.fechaVenta = "La fecha de venta no puede ser en el futuro.";
             isValid = false;
         }
-
-
         if (totalImporte <= 0) {
             errors.totalImporte = "El importe total debe ser mayor a 0.";
             isValid = false;
         }
-
         setValidationErrors(errors);
         return isValid;
     };
@@ -297,7 +313,6 @@ const MyProductList = () => {
         }
 
         const formattedDate = formData.fechaVenta.toISOString().split('T')[0];
-
         const detallesVenta = selectedProducts.map((producto) => ({
             idProducto: producto.idProducto,
             cantidad: producto.cantidad,
@@ -390,14 +405,12 @@ const MyProductList = () => {
     } else {
       setNuevoCliente({ ...nuevoCliente, [name]: value })
     }
-
     setValidationErrorsNuevoCliente((prevErrors) => ({ ...prevErrors, [name]: "" }))
   }
 
     const validateNuevoClienteForm = () => {
         let errors = {};
         let isValid = true;
-
         if (!nuevoCliente.tipoDocumento) {
             errors.tipoDocumento = "El tipo de documento es requerido.";
             isValid = false;
@@ -418,24 +431,19 @@ const MyProductList = () => {
                 isValid = false;
             }
         }
-
         if (nuevoCliente.telefono.trim() && nuevoCliente.telefono.trim().length > 9) {
             errors.telefono = "El teléfono no puede tener más de 9 dígitos.";
             isValid = false;
         }
-
-
         setValidationErrorsNuevoCliente(errors);
         return isValid;
     };
-
 
     const handleCrearClienteRapido = async () => {
         if (!validateNuevoClienteForm()) {
             console.error("Formulario de nuevo cliente inválido.");
             return;
         }
-
         setCargandoNuevoCliente(true);
         setErrorNuevoCliente(null);
         try {
@@ -467,7 +475,6 @@ const MyProductList = () => {
                     onChange={(e) => setSearchTerm(e.target.value)}
                 />
             </div>
-
             <div className="content-container">
                 <div className="products-column">
                     <h2 className="title">Productos Disponibles</h2>
@@ -484,6 +491,8 @@ const MyProductList = () => {
                                             src={producto.imagenUrl}
                                             alt={producto.nombreProducto}
                                             className="product-image"
+                                            onClick={() => handleImageClick(producto.imagenUrl)}
+                                            style={{ cursor: 'pointer' }}
                                         />
                                         <button
                                             className="select-button"
@@ -515,7 +524,6 @@ const MyProductList = () => {
                         )}
                     </div>
                 </div>
-
                 <div className="selected-products-column">
                     <h3>Detalle de Venta</h3>
                     <div className="form-fields-above-table">
@@ -536,7 +544,6 @@ const MyProductList = () => {
                             </select>
                             {validationErrors.tipoComprobante && <p className="error-message">{validationErrors.tipoComprobante}</p>}
                         </div>
-
                         <div className="form-group">
                             <label htmlFor="numeroComprobante">Serie y Número:</label>
                             <input
@@ -550,7 +557,6 @@ const MyProductList = () => {
                             {cargandoNumeracion && <p className="loading-message">Obteniendo numeración...</p>}
                             {validationErrors.numeroComprobante && <p className="error-message">{validationErrors.numeroComprobante}</p>}
                         </div>
-
                         <div className="form-group">
                             <label htmlFor="clienteSelect">Cliente:</label>
                             <Select
@@ -568,7 +574,6 @@ const MyProductList = () => {
                                 + Nuevo Cliente
                             </button>
                         </div>
-
                         <div className="form-group">
                             <label htmlFor="usuarioNombreInput">Usuario:</label>
                             <input
@@ -594,7 +599,6 @@ const MyProductList = () => {
                                 value={formData.usuario}
                             />
                         </div>
-
                         <div className="form-group">
                             <label htmlFor="fechaVenta">Fecha de Venta:</label>
                             <DatePicker
@@ -610,7 +614,6 @@ const MyProductList = () => {
                             />
                             {validationErrors.fechaVenta && <p className="error-message">{validationErrors.fechaVenta}</p>}
                         </div>
-
                     </div>
 
                     <h3>Productos Seleccionados</h3>
@@ -691,6 +694,16 @@ const MyProductList = () => {
                     </div>
                 </div>
             </div>
+
+            {/* Componente Modal de Imagen */}
+            {showModal && (
+                <div className="image-modal-overlay" onClick={closeModalImage}>
+                    <div className="image-modal-content" onClick={e => e.stopPropagation()}>
+                        <span className="close-button" onClick={closeModalImage}>&times;</span>
+                        <img src={selectedImage} alt="Full Size" className="full-size-image" />
+                    </div>
+                </div>
+            )}
 
             <Modal
                 isOpen={modalIsOpen}
