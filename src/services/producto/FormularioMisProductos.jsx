@@ -377,24 +377,14 @@ const MyProductList = () => {
         setValidationErrorsNuevoCliente({});
     };
 
-    {/*const handleNuevoClienteChange = (e) => {
-        const { name, value } = e.target;
-        setNuevoCliente({ ...nuevoCliente, [name]: value });
-        setValidationErrorsNuevoCliente(prevErrors => ({ ...prevErrors, [name]: null }));
-    };
-    */}
-
     const handleNuevoClienteChange = (e) => {
     const { name, value } = e.target
 
-    // Validaciones en tiempo real
     if (name === "numeroDocumento") {
-      // Solo permitir dígitos y máximo 8 para DNI, 11 para RUC
       const maxLength = nuevoCliente.tipoDocumento === "DNI" ? 8 : 11
       const numericValue = value.replace(/\D/g, "").slice(0, maxLength)
       setNuevoCliente({ ...nuevoCliente, [name]: numericValue })
     } else if (name === "telefono") {
-      // Solo permitir dígitos y máximo 9
       const numericValue = value.replace(/\D/g, "").slice(0, 9)
       setNuevoCliente({ ...nuevoCliente, [name]: numericValue })
     } else {
@@ -428,13 +418,6 @@ const MyProductList = () => {
                 isValid = false;
             }
         }
-        //if (!nuevoCliente.telefono.trim()) {
-        //    errors.telefono = "El teléfono es requerido.";
-        //    isValid = false;
-        //} else if (!/^\d+$/.test(nuevoCliente.telefono.trim())) {
-        //errors.telefono = "El teléfono solo debe contener dígitos.";
-        //    isValid = false;
-        //}
 
         if (nuevoCliente.telefono.trim() && nuevoCliente.telefono.trim().length > 9) {
             errors.telefono = "El teléfono no puede tener más de 9 dígitos.";
