@@ -23,10 +23,11 @@ import ReporteFecha from './services/venta/ReporteFecha';
 import CreateClienteForm from './services/cliente/FormularioCrearCliente';
 import ListarEntidades from './services/cliente/ListarEntidades';
 import CrearUsuarioForm from './services/usuario/CrearUsuarioForm';
-import UsuariosList from './services/usuario/UsuariosList'; // La página de creación de usuario
+import UsuariosList from './services/usuario/UsuariosList';
 
 // Asegúrate de tener los estilos CSS de Bootstrap
 import 'bootstrap/dist/css/bootstrap.min.css';
+import ReporteStockColor from './services/venta/ReporteStockColor';
 // Si tienes estilos globales o específicos, impórtalos aquí
 
 function App() {
@@ -136,6 +137,7 @@ function App() {
           <Route path="cliente/list" element={<ListarEntidades />} />
           <Route path="usuario/create" element={<CrearUsuarioForm />} />
           <Route path="usuario/list" element={<UsuariosList />} />
+          <Route path="reporte/stock" element={<ReporteStockColor />} /> {/* Ruta para el reporte de stock por color */}
           {/* Si /usuario/create debe ser accesible solo PARA ADMINS despues del login,
                entonces esta ruta debe ser movida aquí y protegida por PrivateRoute */}
         </Route>

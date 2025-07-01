@@ -117,6 +117,9 @@ const Sidebar = () => {
               <Nav.Link href="/sales/report" className="sub-item">
                 <FontAwesomeIcon icon={faForwardStep} /> Reporte Último
               </Nav.Link>
+              <Nav.Link href="/reporte/stock" className="sub-item">
+                <FontAwesomeIcon icon={faForwardStep} /> Stock Minimo
+              </Nav.Link>
             </div>
           )}
         </div>
