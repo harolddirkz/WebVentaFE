@@ -84,6 +84,7 @@ function App() {
         />
         <Route path="/" element={<PrivateRoute><LayoutSidebar /></PrivateRoute>}>
           <Route index element={<Home />} /> 
+          <Route path="home" element={<Home />} /> 
           <Route path="products/create" element={<FormularioCrearProducto />} />
           <Route path="products/list" element={<ListaProducto />} />
           <Route path="products/list-my-products" element={<FormularioMisProductos />} />
