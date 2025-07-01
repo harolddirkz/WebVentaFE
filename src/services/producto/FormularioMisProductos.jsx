@@ -41,7 +41,6 @@ const MyProductList = () => {
 
     const [modalIsOpen, setModalIsOpen] = useState(false);
     const [nuevoCliente, setNuevoCliente] = useState({
-        nombreCliente: "",
         tipoDocumento: "DNI",
         numeroDocumento: "",
         telefono: "",
@@ -378,20 +377,37 @@ const MyProductList = () => {
         setValidationErrorsNuevoCliente({});
     };
 
-    const handleNuevoClienteChange = (e) => {
+    {/*const handleNuevoClienteChange = (e) => {
         const { name, value } = e.target;
         setNuevoCliente({ ...nuevoCliente, [name]: value });
         setValidationErrorsNuevoCliente(prevErrors => ({ ...prevErrors, [name]: null }));
     };
+    */}
+
+    const handleNuevoClienteChange = (e) => {
+    const { name, value } = e.target
+
+    // Validaciones en tiempo real
+    if (name === "numeroDocumento") {
+      // Solo permitir dígitos y máximo 8 para DNI, 11 para RUC
+      const maxLength = nuevoCliente.tipoDocumento === "DNI" ? 8 : 11
+      const numericValue = value.replace(/\D/g, "").slice(0, maxLength)
+      setNuevoCliente({ ...nuevoCliente, [name]: numericValue })
+    } else if (name === "telefono") {
+      // Solo permitir dígitos y máximo 9
+      const numericValue = value.replace(/\D/g, "").slice(0, 9)
+      setNuevoCliente({ ...nuevoCliente, [name]: numericValue })
+    } else {
+      setNuevoCliente({ ...nuevoCliente, [name]: value })
+    }
+
+    setValidationErrorsNuevoCliente((prevErrors) => ({ ...prevErrors, [name]: "" }))
+  }
 
     const validateNuevoClienteForm = () => {
         let errors = {};
         let isValid = true;
 
-        if (!nuevoCliente.nombreCliente.trim()) {
-            errors.nombreCliente = "El nombre del cliente es requerido.";
-            isValid = false;
-        }
         if (!nuevoCliente.tipoDocumento) {
             errors.tipoDocumento = "El tipo de documento es requerido.";
             isValid = false;
@@ -412,11 +428,16 @@ const MyProductList = () => {
                 isValid = false;
             }
         }
-        if (!nuevoCliente.telefono.trim()) {
-            errors.telefono = "El teléfono es requerido.";
-            isValid = false;
-        } else if (!/^\d+$/.test(nuevoCliente.telefono.trim())) {
-            errors.telefono = "El teléfono solo debe contener dígitos.";
+        //if (!nuevoCliente.telefono.trim()) {
+        //    errors.telefono = "El teléfono es requerido.";
+        //    isValid = false;
+        //} else if (!/^\d+$/.test(nuevoCliente.telefono.trim())) {
+        //errors.telefono = "El teléfono solo debe contener dígitos.";
+        //    isValid = false;
+        //}
+
+        if (nuevoCliente.telefono.trim() && nuevoCliente.telefono.trim().length > 9) {
+            errors.telefono = "El teléfono no puede tener más de 9 dígitos.";
             isValid = false;
         }
 
@@ -696,18 +717,6 @@ const MyProductList = () => {
             >
                 <h2>Registrar Nuevo Cliente</h2>
                 <div className="form-group">
-                    <label htmlFor="nombreCliente">Nombre Cliente:</label>
-                    <input
-                        id="nombreCliente"
-                        type="text"
-                        name="nombreCliente"
-                        value={nuevoCliente.nombreCliente}
-                        onChange={handleNuevoClienteChange}
-                        className={validationErrorsNuevoCliente.nombreCliente ? 'input-error' : ''}
-                    />
-                    {validationErrorsNuevoCliente.nombreCliente && <p className="error-message">{validationErrorsNuevoCliente.nombreCliente}</p>}
-                </div>
-                <div className="form-group">
                     <label htmlFor="tipoDocumento">Tipo de Documento:</label>
                     <select
                         id="tipoDocumento"
@@ -734,13 +743,16 @@ const MyProductList = () => {
                     {validationErrorsNuevoCliente.numeroDocumento && <p className="error-message">{validationErrorsNuevoCliente.numeroDocumento}</p>}
                 </div>
                 <div className="form-group">
-                    <label htmlFor="telefono">Teléfono:</label>
+                    <label htmlFor="telefono">Teléfono:
+                        <span className="text-xs text-gray-500 ml-2">(opcional, máx. 9 dígitos)</span>
+                    </label>
                     <input
                         id="telefono"
                         type="text"
                         name="telefono"
                         value={nuevoCliente.telefono}
                         onChange={handleNuevoClienteChange}
+                        placeholder="123456789"
                         className={validationErrorsNuevoCliente.telefono ? 'input-error' : ''}
                     />
                     {validationErrorsNuevoCliente.telefono && <p className="error-message">{validationErrorsNuevoCliente.telefono}</p>}
