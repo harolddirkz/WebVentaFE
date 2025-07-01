@@ -323,26 +323,24 @@ button {
     background-color: #0056b3;
   }
 
-  /* Colorimetría basada en Stock */
 .product-card.stock-low {
-    background-color: #ffe0e0; /* Rojo suave */
+    background-color: #ffe0e0; 
     border-color: #ffb3b3;
 }
 
 .product-card.stock-medium {
-    background-color: #fff3e0; /* Naranja suave */
+    background-color: #fff3e0;
     border-color: #ffdbb3;
 }
 
 .product-card.stock-high {
-    background-color: #e0ffe0; /* Verde suave */
+    background-color: #e0ffe0;
     border-color: #b3ffb3;
 }
 
-/* Estilos adicionales para los campos del formulario de edición (si no los tenías) */
 .edit-form {
     display: grid;
-    grid-template-columns: 1fr; /* Una columna por defecto */
+    grid-template-columns: 1fr;
     gap: 15px;
     padding: 10px;
 }
@@ -367,16 +365,16 @@ button {
     border-radius: 4px;
     font-size: 1em;
     width: 100%;
-    box-sizing: border-box; /* Incluir padding y borde en el ancho */
+    box-sizing: border-box; 
 }
 
 .edit-form textarea {
-    min-height: 80px; /* Altura mínima para textareas */
-    resize: vertical; /* Permitir redimensionar verticalmente */
+    min-height: 80px; 
+    resize: vertical; 
 }
 
 .edit-form button {
-    background-color: #007bff; /* Azul para el botón de guardar */
+    background-color: #007bff;
     color: white;
     border: none;
     padding: 10px 20px;
@@ -391,35 +389,32 @@ button {
     background-color: #0056b3;
 }
 
-/* Estilos para el botón de cerrar en la sección de edición */
 .button-cerrar {
-    background-color: #6c757d; /* Gris para el botón de cerrar */
+    background-color: #6c757d; 
     color: white;
     border: none;
     padding: 5px 10px;
-    border-radius: 50%; /* Hacerlo redondo */
+    border-radius: 50%; 
     cursor: pointer;
     font-size: 1em;
     font-weight: bold;
     transition: background-color 0.2s ease;
-    align-self: flex-start; /* Alinearlo arriba a la derecha */
+    align-self: flex-start;
 }
 
 .button-cerrar:hover {
     background-color: #5a6268;
 }
 
-/* Estilos para los mensajes de éxito/error en la sección de edición */
 .success-message {
-    color: #28a745; /* Verde para éxito */
+    color: #28a745; 
     font-size: 0.9em;
     margin-top: 10px;
     text-align: center;
 }
 
-/* Media query para hacer el formulario de edición más responsivo */
 @media (min-width: 768px) {
     .edit-form {
-        grid-template-columns: repeat(auto-fit, minmax(250px, 1fr)); /* Dos columnas en pantallas más grandes */
+        grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
     }
 }
