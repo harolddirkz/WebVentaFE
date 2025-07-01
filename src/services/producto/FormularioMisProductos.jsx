@@ -617,10 +617,10 @@ const MyProductList = () => {
                             <thead>
                                 <tr>
                                     <th style={{ width: "50%" }}>Nombre</th>
-                                    <th style={{ width: "10%" }}>Cant.</th>
+                                    <th style={{ width: "15%" }}>Cant.</th>
                                     <th style={{ width: "15%" }}>P.V.</th>
                                     <th style={{ width: "15%" }}>Importe</th>
-                                    <th style={{ width: "10%" }}></th>
+                                    <th style={{ width: "8%" }}></th>
                                 </tr>
                             </thead>
                             <tbody>

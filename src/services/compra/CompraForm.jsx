@@ -23,31 +23,34 @@ const CompraForm = () => {
   const [totalImporteCompra, setTotalImporteCompra] = useState(0);
 
   const [validationErrors, setValidationErrors] = useState({});
-  const [currentUser, setCurrentUser] = useState(null); 
-  const [loadingUser, setLoadingUser] = useState(true); 
-  const [userError, setUserError] = useState(null); 
+  const [currentUser, setCurrentUser] = useState(null);
+  const [loadingUser, setLoadingUser] = useState(true);
+  const [userError, setUserError] = useState(null);
 
 
   useEffect(() => {
     const fetchData = async () => {
-      setLoading(true); 
-      setUserError(null); 
+      setLoading(true);
+      setUserError(null);
       try {
         const productosData = await getProductosPorEstado();
-        setProductos(productosData);
+        // Opcional: Asegúrate de que los objetos son copias al inicio para evitar mutaciones inesperadas del origen
+        const safeProductosData = productosData.map(p => ({ ...p }));
+        setProductos(safeProductosData);
+
         const proveedoresData = await getProveedores();
         setProveedores(proveedoresData || []);
         const usuariosData = await getUsuarios();
         setUsuarios(usuariosData || []);
 
-        setLoadingUser(true); 
+        setLoadingUser(true);
         const loggedInUser = await getLoggedInUser();
-        setCurrentUser(loggedInUser); 
+        setCurrentUser(loggedInUser);
         setFormData(prevData => ({
           ...prevData,
-          usuario: loggedInUser.idUsuario, 
+          usuario: loggedInUser.idUsuario,
         }));
-        setLoadingUser(false); 
+        setLoadingUser(false);
 
       } catch (error) {
         console.error("Error al cargar datos:", error);
@@ -66,16 +69,30 @@ const CompraForm = () => {
     );
   }, [productos, searchTerm]);
 
+  const parseNumber = (value) => {
+    const number = parseFloat(value);
+    return isNaN(number) ? 0 : number;
+  };
+
+  const calculateImporte = (cantidad, precioUnitario) => {
+    const qty = parseNumber(cantidad);
+    const pu = parseNumber(precioUnitario);
+    return (qty * pu).toFixed(2);
+  };
+
   const handleSelectProduct = (producto) => {
     if (!selectedProducts.some((p) => p.idProducto === producto.idProducto)) {
+      const initialPrecioUnitario = producto.nombreProducto === "Servicio Mecanico" ? 0 : parseNumber(producto.ultimoPrecioUnitario || 0);
+      const initialPrecioVenta = parseNumber(producto.ultimoPrecioVenta || 0);
+
       setSelectedProducts((prevSelected) => [
         ...prevSelected,
         {
           ...producto,
           cantidad: 1,
-          precioUnitario: producto.nombreProducto === "Servicio Mecanico" ? 0 : (producto.ultimoPrecioUnitario || 0),
-          precioVenta: producto.ultimoPrecioVenta || 0,
-          importe: (1 * (producto.nombreProducto === "Servicio Mecanico" ? 0 : (producto.ultimoPrecioUnitario || 0))).toFixed(2),
+          precioUnitario: initialPrecioUnitario, // Asegura que es un número
+          precioVenta: initialPrecioVenta,     // Asegura que es un número
+          importe: calculateImporte(1, initialPrecioUnitario), // Calcula el importe inicial
         },
       ]);
       setValidationErrors(prev => {
@@ -86,44 +103,51 @@ const CompraForm = () => {
     }
   };
 
-  const parseNumber = (value) => {
-    const number = parseFloat(value);
-    return isNaN(number) ? 0 : number;
-  };
-
   const handleUpdateQuantity = (productId, newQuantity) => {
-    const parsedQuantity = parseInt(newQuantity, 10);
     setSelectedProducts((prevSelected) =>
-      prevSelected.map((product) =>
-        product.idProducto === productId
-          ? {
-              ...product,
-              cantidad: isNaN(parsedQuantity) || parsedQuantity < 1 ? "" : parsedQuantity,
-              importe: calculateImporte(
-                isNaN(parsedQuantity) || parsedQuantity < 1 ? 0 : parsedQuantity,
-                product.precioUnitario
-              ),
-            }
-          : product
-      )
+      prevSelected.map((product) => {
+        if (product.idProducto === productId) {
+          const updatedQuantity = isNaN(parseInt(newQuantity, 10)) || parseInt(newQuantity, 10) < 1 ? "" : parseInt(newQuantity, 10);
+          const updatedPrecioUnitario = parseNumber(product.precioUnitario); // Asegurarse que es un número
+
+          return {
+            ...product,
+            cantidad: updatedQuantity,
+            importe: calculateImporte(
+              isNaN(updatedQuantity) || updatedQuantity < 1 ? 0 : updatedQuantity,
+              updatedPrecioUnitario // Usa el precio unitario actual del producto
+            ),
+          };
+        }
+        return product;
+      })
     );
   };
 
   const handleUpdateField = (productId, field, value) => {
     setSelectedProducts((prevSelected) =>
       prevSelected.map((product) => {
+        // Solo actualizamos el producto que coincide con el ID
+        if (product.idProducto !== productId) {
+          return product;
+        }
+
         const parsedValue = parseNumber(value);
+
+        // Creamos una copia del producto para modificar
         let updatedProduct = {
           ...product,
-          [field]: value
+          [field]: value // Asignamos el nuevo valor (puede ser string del input)
         };
 
+        // Si el campo es precioUnitario o cantidad, recalcula el importe usando los valores ACTUALIZADOS
         if (field === "precioUnitario" || field === "cantidad") {
-          updatedProduct.importe = calculateImporte(
-            field === "cantidad" ? parsedValue : product.cantidad,
-            field === "precioUnitario" ? parsedValue : product.precioUnitario
-          );
+          const currentQuantity = field === "cantidad" ? parsedValue : parseNumber(updatedProduct.cantidad);
+          const currentPrecioUnitario = field === "precioUnitario" ? parsedValue : parseNumber(updatedProduct.precioUnitario);
+
+          updatedProduct.importe = calculateImporte(currentQuantity, currentPrecioUnitario);
         }
+        // Devuelve el producto con los campos actualizados y el importe recalculado
         return updatedProduct;
       })
     );
@@ -135,7 +159,7 @@ const CompraForm = () => {
     );
     setValidationErrors(prev => {
       const newErrors = { ...prev };
-      if (selectedProducts.length - 1 === 0) {
+      if (selectedProducts.filter(p => p.idProducto !== productId).length === 0) { // Comprueba después de filtrar
         newErrors.selectedProducts = "Debe seleccionar al menos un producto.";
       } else {
         delete newErrors.selectedProducts;
@@ -162,18 +186,12 @@ const CompraForm = () => {
       ...prevData,
       fechaCompra: date,
     }));
-    setValidationErrors(prevErrors => ({ ...prevErrors, fechaCompra: null })); 
-  };
-
-  const calculateImporte = (cantidad, precioUnitario) => {
-    const qty = parseNumber(cantidad);
-    const pu = parseNumber(precioUnitario);
-    return (qty * pu).toFixed(2);
+    setValidationErrors(prevErrors => ({ ...prevErrors, fechaCompra: null }));
   };
 
   useEffect(() => {
     const newTotal = selectedProducts.reduce(
-      (sum, product) => sum + parseNumber(calculateImporte(product.cantidad, product.precioUnitario)),
+      (sum, product) => sum + parseNumber(product.importe || 0), // Usar product.importe directamente que ya está actualizado
       0
     );
     setTotalImporteCompra(newTotal.toFixed(2));
@@ -210,7 +228,7 @@ const CompraForm = () => {
 
         if (product.nombreProducto.trim().toLowerCase() === "servicio mecanico") {
           if (parseNumber(product.precioUnitario) < 0) {
-              errors[`precioUnitario_${product.idProducto}`] = `El precio unitario de ${product.nombreProducto} no puede ser negativo.`;
+            errors[`precioUnitario_${product.idProducto}`] = `El precio unitario de ${product.nombreProducto} no puede ser negativo.`;
           }
         } else {
 
@@ -239,15 +257,16 @@ const CompraForm = () => {
       return;
     }
 
+    // La fecha ya está en el formato Date object, solo necesitamos formatearla para el envío al backend
     const formattedFechaCompra = formData.fechaCompra.toISOString().split('T')[0];
 
     const detallesCompra = selectedProducts.map(
-      ({ idProducto, cantidad, precioUnitario, precioVenta }) => ({
+      ({ idProducto, cantidad, precioUnitario, precioVenta, importe }) => ({
         idProducto,
         cantidad: parseInt(cantidad, 10),
         precioUnitario: parseNumber(precioUnitario),
         precioVenta: parseNumber(precioVenta),
-        importe: parseNumber(calculateImporte(cantidad, precioUnitario)),
+        importe: parseNumber(importe), // Usar el importe ya calculado y guardado en el estado
       })
     );
 
@@ -256,6 +275,7 @@ const CompraForm = () => {
       idUsuario: formData.usuario,
       tipoComprobante: formData.tipoComprobante,
       numeroComprobante: formData.numeroComprobante,
+      fechaCompra: formattedFechaCompra, // Asegúrate de enviar la fecha formateada
       total: parseNumber(totalImporteCompra),
       detalles: detallesCompra,
     };
@@ -265,12 +285,13 @@ const CompraForm = () => {
       await requestCompra(compraData);
       setCompraRegistrada(true);
       setErrorCompra(null);
+      // Limpiar el formulario después de un envío exitoso
       setSelectedProducts([]);
       setFormData({
         tipoComprobante: "BOLETA DE VENTA",
         numeroComprobante: "",
         proveedor: "",
-        usuario: "",
+        usuario: currentUser ? currentUser.idUsuario : "", // Reestablece el usuario logueado si existe
         fechaCompra: new Date(),
       });
       setTotalImporteCompra(0);
@@ -404,17 +425,17 @@ const CompraForm = () => {
                     : userError
                     ? 'Error al cargar usuario'
                     : currentUser
-                    ? currentUser.nombre 
+                    ? currentUser.nombre
                     : 'No hay usuario'
                 }
-                disabled={true} 
+                disabled={true}
                 className={validationErrors.usuario ? 'input-error' : ''}
               />
               {userError && <p className="error-message">{userError}</p>}
               <input
                 type="hidden"
-                name="usuario" 
-                value={formData.usuario} 
+                name="usuario"
+                value={formData.usuario}
               />
               {validationErrors.usuario && (
                 <p className="error-message">{validationErrors.usuario}</p>
@@ -428,9 +449,9 @@ const CompraForm = () => {
                     selected={formData.fechaCompra}
                     onChange={handleDateChange}
                     dateFormat="yyyy-MM-dd"
-                    maxDate={new Date()} 
-                    showYearDropdown 
-                    scrollableYearDropdown 
+                    maxDate={new Date()}
+                    showYearDropdown
+                    scrollableYearDropdown
                     yearDropdownItemNumber={15}
                     className={`react-datepicker-input ${validationErrors.fechaCompra ? 'input-error' : ''}`}
                 />
@@ -470,7 +491,7 @@ const CompraForm = () => {
                       <input
                         type="number"
                         min="1"
-                        value={producto.cantidad}
+                        value={producto.cantidad || ''} // Asegura un valor por defecto
                         onChange={(e) =>
                           handleUpdateQuantity(
                             producto.idProducto,
@@ -484,7 +505,7 @@ const CompraForm = () => {
                       <input
                         type="number"
                         step="0.01"
-                        value={producto.precioUnitario}
+                        value={producto.precioUnitario || ''} // Asegura un valor por defecto
                         onChange={(e) =>
                           handleUpdateField(
                             producto.idProducto,
@@ -500,7 +521,7 @@ const CompraForm = () => {
                         type="number"
                         step="0.01"
                         min="0.01"
-                        value={producto.precioVenta}
+                        value={producto.precioVenta || ''} // Asegura un valor por defecto
                         onChange={(e) =>
                           handleUpdateField(
                             producto.idProducto,
@@ -512,7 +533,7 @@ const CompraForm = () => {
                       />
                     </td>
                     <td>
-                      S/.{calculateImporte(producto.cantidad, producto.precioUnitario)}
+                      S/.{producto.importe} {/* Muestra el importe que ya está en el estado del producto */}
                     </td>
                     <td>
                       <button onClick={() => handleRemoveProduct(producto.idProducto)}>
