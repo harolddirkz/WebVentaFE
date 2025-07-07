@@ -15,6 +15,11 @@ p {
   line-height: 1.7;
 }
 
+.carousel {
+  z-index: 1000 !important; /* menor que sidebar */
+  position: relative;
+}
+
 /* Carrusel */
 .carousel-caption {
   background: rgba(0, 0, 0, 0.5);

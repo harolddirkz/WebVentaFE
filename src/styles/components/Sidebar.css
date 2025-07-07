@@ -1,10 +1,11 @@
 .sidebar {
-  width: 200px; 
+  width: 250px; 
   height: 100vh; 
   position: fixed; 
   top: 0;
   left: 0;
   background-color: #f4f4f4; 
+  z-index: 2000; /* mayor que carousel/table */
   padding: 20px;
   box-shadow: 2px 0 5px rgba(0, 0, 0, 0.1); 
 }
